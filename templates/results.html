@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" ng-app>
+     
+  <head>
+    <meta charset="utf-8">
+    <title>S3 Browser</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+    <link href="static/css/style-template.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/">S3 Browser</a>
+        </div>
+        <div class="collapse navbar-collapse">
+        </div>
+      </div>
+    </div>
+
+    <h3>List of all files </h3>
+    <div id="other"></div>
+    <div id="some"></div>
+    <span id="some"></span>
+
+    <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
+  </body>
+
+   <script>
+     var file = {{bucket|safe}};
+     var url = {{name|safe}}
+     //console.dir(res);
+     //console.dir(name);
+     //var str = JSON.stringify(res, null, 5); 
+     //name = JSON.stringify(name,null,5)
+    // name.toString().replace(/"/g,'');
+  //  alert(str);
+	//name = name.substring(1, name.length-1);
+	//name = name.replace(/,/g, '<br>');  
+	//str = str.substring(1,str.length-1);
+	//str = str.replace(/,/g,'<br>');
+	
+/*
+
+  var fileurl = res.split(',');	
+	 filename = name.split(',');
+*/
+var directory = {
+
+};
+/*
+
+  directory = {
+    sridhar:{
+      previous : '',
+      next : ''
+    },
+    bhaskar:{
+      previous : '',
+      next :''
+    },
+    raj:{
+      previous : '',
+      next : ''
+    },
+    srini:{
+      previous : '',
+      next : ['raj','bhaskar','sridhar'] 
+    }
+  };
+
+*/
+var length =0,
+    tempMap;
+    for(var i=0;i<url.length;i++){
+        length = file[i].split('/').length;
+        tempMap = getTempMap();
+        if(length==1){
+          tempMap.previous = null;
+          tempMap.next.push(url[i]);
+          directory[file[i]]=tempMap;
+        }
+        else{
+          mapDirectory(file[i],url[i]);
+        }
+    }
+
+    function mapDirectory(namespace,fileurl){
+      var directories = namespace.split('/');
+      var tempMap;
+      //console.log(directories);
+      for(var i=directories.length-1;i>=0;i--){
+        
+        var tempKey  = getKey(directories,i);
+
+        if(directory[tempKey]) {
+          tempMap = directory[tempKey];
+          if(i==directories.length-1){
+            tempMap.previous=directories[i-1];
+            tempMap.next.push(fileurl);
+            //console.log('tempMap: ', tempMap);
+            //directory[directories[i]]=tempMap;
+            directory[tempKey]=tempMap;
+          }
+          else{
+            tempMap.previous = directories[i-1];
+            if(tempMap.next.indexOf(directories[i+1]) < 0){
+                tempMap.next.push(directories[i+1]);
+            }
+            
+            if(!tempMap.previous){
+              tempMap.previous=null;
+            }
+            //console.log('tempMapbkgbf :', tempMap);
+            //directory[directories[i]]=tempMap;
+            directory[tempKey]=tempMap;
+          }
+
+        } 
+
+        else {
+          tempMap = getTempMap();
+          if(i==directories.length-1){
+            tempMap.previous=directories[i-1];
+            tempMap.next.push(fileurl);
+            //console.log('tempMap: ', tempMap);
+            //directory[directories[i]]=tempMap;
+            directory[tempKey]=tempMap;
+          }
+          else{
+            tempMap.previous = directories[i-1];
+            if(tempMap.next.indexOf(directories[i+1]) < 0){
+                tempMap.next.push(directories[i+1]);
+            }
+            if(!tempMap.previous){
+              tempMap.previous=null;
+            }
+            //console.log('tempMapbkgbf :', tempMap);
+            //directory[directories[i]]=tempMap;
+            directory[tempKey]=tempMap;
+          }
+        }
+
+      }
+
+    };
+
+    function getTempMap(){
+      return {
+        previous: '',
+        next: []
+      };
+    }
+
+    function getKey(list, currIndex){
+      var key = '';
+      for(var i=0;i<=currIndex;i++) {
+        if(i!=0){
+          key += '/';
+        }
+        key += list[i];
+      }
+      return key;
+
+    }
+    
+    //console.log(JSON.stringify(directory));
+    var count = 0,
+      linkCount = 0;
+    for(var ind in directory) {
+      count ++;
+      if(directory[ind].next.length === 1){
+        if(directory[ind].next[0].indexOf('https://') > -1) {
+          linkCount++;
+        }
+      }
+    }
+    //console.log('count: ', count);
+    //console.log('linkCount: ', linkCount);
+
+
+   var str = JSON.stringify(directory, null, 2); // spacing level = 2
+   str = str.replace(/},/g, '<br><br>'); 
+
+
+  //  document.getElementById('some').innerHTML=str;
+
+  var previousNullArr =[];
+  function previousNull(directory){
+    for(var aus in directory){
+      if(directory[aus].previous==null) {
+        previousNullArr.push(aus);
+        
+      }
+    }
+    return previousNullArr;
+  }
+  previousNull(directory);
+  //console.log(previousNullArr);
+
+function showFiles(arr, parent){
+
+  var html = '<table>';
+  html = html+ '<tr><th> </th></tr>';
+  var ite;
+  if(!parent) parent = '';
+  html = html+'<tr><td onclick="doIfPreviousRoot(\'' + parent + '\')">../[Up]</td></tr>';
+  for(ite = 0 ;ite<arr.length; ite++){
+
+    // change the split value here 
+    //arr[ite].split('/')[arr[ite].split('/').length-1]
+    var testForUrlPath = arr[ite].split('//');
+    var testForHttps = arr[ite].split('/');
+    //console.log(test[1]);
+
+    var until = testForHttps.indexOf("https:");
+    //console.log(until);
+    if(until==-1){
+      html = html+'<tr><td onclick="doMoveToNextPointer(\'' + arr[ite] + '\')">'+arr[ite].split('/')[arr[ite].split('/').length-1]+'</td></tr>';
+      //console.log(test);
+    }
+    else{
+    //console.log(until);
+     var displayUrl = "https://"+testForUrlPath[1]+"/";
+     var displayNextToDownload = testForUrlPath[0].replace("https:","");
+     //console.log(displayUrl);
+    html = html+'<tr><td onclick="doMoveToNextPointer(\'' + arr[ite] + '\')"><a href=\"'+displayUrl +'\">Download</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+displayNextToDownload+'</td></tr>';
+    //html = html+'<td>'+'<a href=\"'+fileurl[ite]+'\">Download</a>'+'</td></tr>';  
+   }
+  }
+
+  html = html + '</table>';
+
+  document.getElementById('other').innerHTML=html;
+}
+//showFiles(directory.home.next);
+showFiles(previousNullArr);
+
+
+function doIfPreviousRoot(curr){
+  var test = curr.split('/');
+  if(test.length==1){
+    return showFiles(previousNullArr);
+
+  }
+  var res='';
+  for(var tt =0; tt<test.length-1;tt++){
+    if(tt !=0){
+      res += '/';
+    }
+    res +=test[tt];
+    console.log(res);
+  }
+  //console.log(res);
+ return doMoveToNextPointer(res);
+}
+
+
+function doMoveToNextPointer(parent) {
+  var theArr =[];
+  //theArr = directory[parent].next;
+  for (var ink=0;ink < directory[parent].next.length;ink++){
+    theArr.push(parent+'/'+directory[parent].next[ink]);
+  }
+  showFiles(theArr, parent)
+}
+
+    //for(var len =0; len < directory.)
+
+/*
+
+	var filelength = filename.length;
+	var html = '<table>';
+	html = html+ '<tr><th>File Name</th><th>File URL</th></tr>';
+	var ite;
+	for(ite =0; ite<file.length;ite++){
+	html = html + '<tr><td>'+filename[ite].replace(/"/g,"")+'</td>';
+	html = html+'<td>'+'<a href=\"'+fileurl[ite]+'\">Download</a>'+'</td></tr>';	
+	
+	}
+	html = html+'</table>';
+  //document.getElementById('some').innerHTML=name ;
+
+  document.getElementById('other').innerHTML=html;
+*/
+
+
+    </script>
+
+
+
+</html>
+
